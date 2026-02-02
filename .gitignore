@@ -4,6 +4,11 @@
 .idea/
 src/db.sqlite3
 reg.json
+build/
+main.build/
+pypy*/
+pypy*
+dist/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
