@@ -1,0 +1,44 @@
+https://www.libsdl.org/
+https://github.com/topics/sdl3
+
+    https://github.com/Aermoss/PySDL3
+        python -m pip install --upgrade PySDL3
+
+    https://pysdl3.readthedocs.io/en/latest/index.html
+    https://glusoft.com/sdl3-tutorials/
+
+sudo apt install libsdl3-dev
+SDL_VIDEODRIVER=x11 python main.py
+SDL_RENDERER_DRIVER=opengl python main.py
+SDL_RENDERER_DRIVER=vulkan python main.py
+
+#TODO
+SDL_SetWindowShape ou o hack X11 pra click-through
+
+# Supondo que tenha uma surface com alpha
+surface = sdl3.SDL_CreateRGBSurfaceWithFormat(0, 640, 480, 32, sdl3.SDL_PIXELFORMAT_RGBA32)
+sdl3.SDL_SetWindowShape(window, surface, None)  # None = default mode
+
+# Erros
+Plasma + X11
+
+Com SDL_WINDOW_TRANSPARENT + limpeza com alpha=0: em alguns casos 
+(dependendo do driver gráfico e KWin), o fundo pode ficar perfurado ou semi-transparente.
+SDL_SetWindowOpacity(0.80): deve deixar a janela toda com 80% de opacidade 
+(mais confiável no seu ambiente).
+
+Se o fundo ficar preto:
+Comentar sdl3.SDL_WINDOW_TRANSPARENT e teste só com opacidade.
+Verificar se o compositor do KDE está ativado 
+(System Settings → Display and Monitor → Compositor → Enable compositor on startup).
+
+
+Se rodar e a janela aparecer, verificar:
+
+Fundo preto
+Janela toda semi-transparente (incluindo o retângulo vermelho)
+Fundo copia o desktop (perfurado)
+
+Se ainda der erro em SDL_RenderFillRect (tipo mismatch), tentar passar:
+    ctypes.byref(frect)
+em vez de frect direto — alguns bindings ctypes são chatos com isso.
