@@ -42,16 +42,16 @@ class Frame(object):
         # Control Frame
         self.__running = True
         self.__cursor = {
-            ResizeRegion.TOP: sdl3.SDL_CreateSystemCursor(8),
-            ResizeRegion.BOTTOM: sdl3.SDL_CreateSystemCursor(8),
-            ResizeRegion.LEFT: sdl3.SDL_CreateSystemCursor(7),
-            ResizeRegion.RIGHT: sdl3.SDL_CreateSystemCursor(7),
-            ResizeRegion.TOPLEFT: sdl3.SDL_CreateSystemCursor(5),
-            ResizeRegion.BOTTOMRIGHT: sdl3.SDL_CreateSystemCursor(5),
-            ResizeRegion.TOPRIGHT: sdl3.SDL_CreateSystemCursor(6),
-            ResizeRegion.BOTTOMLEFT: sdl3.SDL_CreateSystemCursor(6),
-            ResizeRegion.NONE: sdl3.SDL_CreateSystemCursor(0),
-            'FRAME_DRAG': sdl3.SDL_CreateSystemCursor(0),
+            'TOP': sdl3.SDL_CreateSystemCursor(8),
+            'BOTTOM': sdl3.SDL_CreateSystemCursor(8),
+            'LEFT': sdl3.SDL_CreateSystemCursor(7),
+            'RIGHT': sdl3.SDL_CreateSystemCursor(7),
+            'TOPLEFT': sdl3.SDL_CreateSystemCursor(5),
+            'BOTTOMRIGHT': sdl3.SDL_CreateSystemCursor(5),
+            'TOPRIGHT': sdl3.SDL_CreateSystemCursor(6),
+            'BOTTOMLEFT': sdl3.SDL_CreateSystemCursor(6),
+            'NONE': sdl3.SDL_CreateSystemCursor(0),
+            'DRAG': sdl3.SDL_CreateSystemCursor(9),
         }
 
         # Control Frame - Drag 
@@ -95,10 +95,11 @@ class Frame(object):
                 if event.type == sdl3.SDL_EVENT_MOUSE_BUTTON_DOWN:
                     if event.button.button == sdl3.SDL_BUTTON_LEFT:
                         self.__resize_region = self.__detect_resize_region()
-                        self.__update_cursor(self.__resize_region)
                         if self.__resize_region != ResizeRegion.NONE:
+                            self.__update_cursor(self.__resize_region.value)
                             self.__update_resize()
                         else:
+                            self.__update_cursor('DRAG')
                             self.__update_drag()
 
                 elif event.type == sdl3.SDL_EVENT_MOUSE_BUTTON_UP:
@@ -173,11 +174,11 @@ class Frame(object):
 
         return ResizeRegion.NONE
     
-    def __update_cursor(self, resize_region: ResizeRegion) -> None:
+    def __update_cursor(self, cursor_name: str) -> None:
         if self.__resizing or self.__dragging:
             return
 
-        sdl3.SDL_SetCursor(self.__cursor[resize_region])
+        sdl3.SDL_SetCursor(self.__cursor[cursor_name])
     
     def __start_resize(self) -> None:
         if not self.__resizing:
@@ -220,6 +221,7 @@ class Frame(object):
     def __stop_resize(self) -> None:
         self.__resizing = False
         self.__resize_region = ResizeRegion.NONE
+        self.__update_cursor('NONE')
 
     def __update_resize(self) -> None:
         self.__resizing = True
@@ -254,6 +256,7 @@ class Frame(object):
     
     def __stop_drag(self) -> None:
         self.__dragging = False
+        self.__update_cursor('NONE')
     
     def __update_drag(self) -> None:
         self.__dragging = True
