@@ -41,6 +41,18 @@ class Frame(object):
         
         # Control Frame
         self.__running = True
+
+        # Control Frame - Drag 
+        self.__dragging = False
+        self.__drag_offset_x = 0
+        self.__drag_offset_y = 0
+
+        # Control Frame - resize
+        self.__resizing = False
+        self.__resize_region = ResizeRegion.NONE
+        self.__resize_border = 8
+
+        # Control Cursor
         self.__cursor = {
             'TOP': sdl3.SDL_CreateSystemCursor(8),
             'BOTTOM': sdl3.SDL_CreateSystemCursor(8),
@@ -53,16 +65,7 @@ class Frame(object):
             'NONE': sdl3.SDL_CreateSystemCursor(0),
             'DRAG': sdl3.SDL_CreateSystemCursor(9),
         }
-
-        # Control Frame - Drag 
-        self.__dragging = False
-        self.__drag_offset_x = 0
-        self.__drag_offset_y = 0
-
-        # Control Frame - resize
-        self.__resizing = False
-        self.__resize_region = ResizeRegion.NONE
-        self.__resize_border = 8
+        self.__last_resize_cursor_on_hover = 'NONE'
         
     def run(self) -> int:
         self.__event_loop()
@@ -82,8 +85,11 @@ class Frame(object):
             event = sdl3.SDL_Event()
 
             while sdl3.SDL_PollEvent(event):
-                # self.__resize_region = self.__detect_resize_region()
-                # print(self.__resize_region)
+
+                resize_region = self.__detect_resize_region()
+                if resize_region.value != self.__last_resize_cursor_on_hover:
+                    self.__update_cursor(resize_region.value)
+                    self.__last_resize_cursor_on_hover = resize_region.value
 
                 if event.type == sdl3.SDL_EVENT_QUIT:
                     self.__running = False
@@ -112,23 +118,56 @@ class Frame(object):
                         self.__start_resize()
                     elif self.__dragging:
                         self.__start_drag()
-    
+
             # Clear Frame with alpha 0
-            sdl3.SDL_SetRenderDrawColor(self.__renderer, 0, 0, 0, 100)
+            sdl3.SDL_SetRenderDrawColor(self.__renderer, 0, 0, 0, 0)
             sdl3.SDL_RenderClear(self.__renderer)
 
-            # Draw transparent red rect - SDL_FRect!
-            sdl3.SDL_SetRenderDrawColor(self.__renderer, 255, 100, 100, 220)
-            frect = sdl3.SDL_FRect(x=100.0, y=100.0, w=440.0, h=280.0)
-            sdl3.SDL_RenderFillRect(self.__renderer, frect)   # ← direct on object
-
-            # Green lines (SDL_RenderLine - It also accepts floats)
-            sdl3.SDL_SetRenderDrawColor(self.__renderer, 100, 255, 100, 255)
-            for i in range(15):
-                sdl3.SDL_RenderLine(self.__renderer, 50.0 + i * 40.0, 50.0, 100.0 + i * 40.0, 400.0)
+            w = c_int()
+            h = c_int()
+            sdl3.SDL_GetWindowSize(self.__frame, w, h)
+            self.draw_rect(0, 0, w.value, h.value, (200, 200, 200, 255), 8)
+            self.draw_rect(1, 1, w.value - 2, h.value - 2, (100, 100, 100, 255), 7)
 
             sdl3.SDL_RenderPresent(self.__renderer)
             sdl3.SDL_Delay(10)
+    
+    def __draw_filled_circle(self, cx, cy, r):
+        for dy in range(-r, r + 1):
+            dx = int((r*r - dy*dy) ** 0.5)
+            sdl3.SDL_RenderLine(self.__renderer, cx - dx, cy + dy, cx + dx, cy + dy)
+
+    def draw_rect(self, x, y, w, h, color, r):
+        tl = tr = br = bl = r
+        rmax = min(w // 2, h // 2)
+        tl = min(tl, rmax)
+        tr = min(tr, rmax)
+        br = min(br, rmax)
+        bl = min(bl, rmax)
+
+        sdl3.SDL_SetRenderDrawColor(self.__renderer, *color)
+
+        # Middle
+        sdl3.SDL_RenderFillRect(
+            self.__renderer, sdl3.SDL_FRect(x + tl, y, w - tl - tr, h))
+        
+        # Left
+        sdl3.SDL_RenderFillRect(
+            self.__renderer, sdl3.SDL_FRect(x, y + tl, tl, h - tl - bl))
+        
+        # Right
+        sdl3.SDL_RenderFillRect(
+            self.__renderer, sdl3.SDL_FRect(x + w - tr, y + tr, tr, h - tr - br))
+
+        # Corners circles
+        if tl:
+            self.__draw_filled_circle(x + tl, y + tl, tl)
+        if tr:
+            self.__draw_filled_circle(x + w - tr - 1, y + tr, tr)
+        if br:
+            self.__draw_filled_circle(x + w - br - 1, y + h - br - 1, br)
+        if bl:
+            self.__draw_filled_circle(x + bl, y + h - bl - 1, bl)
 
     def __detect_resize_region(self) -> ResizeRegion:
         mx = c_float()
