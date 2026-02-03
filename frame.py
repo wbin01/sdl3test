@@ -41,6 +41,18 @@ class Frame(object):
         
         # Control Frame
         self.__running = True
+        self.__cursor = {
+            ResizeRegion.TOP: sdl3.SDL_CreateSystemCursor(8),
+            ResizeRegion.BOTTOM: sdl3.SDL_CreateSystemCursor(8),
+            ResizeRegion.LEFT: sdl3.SDL_CreateSystemCursor(7),
+            ResizeRegion.RIGHT: sdl3.SDL_CreateSystemCursor(7),
+            ResizeRegion.TOPLEFT: sdl3.SDL_CreateSystemCursor(5),
+            ResizeRegion.BOTTOMRIGHT: sdl3.SDL_CreateSystemCursor(5),
+            ResizeRegion.TOPRIGHT: sdl3.SDL_CreateSystemCursor(6),
+            ResizeRegion.BOTTOMLEFT: sdl3.SDL_CreateSystemCursor(6),
+            ResizeRegion.NONE: sdl3.SDL_CreateSystemCursor(0),
+            'FRAME_DRAG': sdl3.SDL_CreateSystemCursor(0),
+        }
 
         # Control Frame - Drag 
         self.__dragging = False
@@ -54,18 +66,25 @@ class Frame(object):
         
     def run(self) -> int:
         self.__event_loop()
+        self.__destroy()
+        return 0
+    
+    def __destroy(self):
+        for c in self.__cursor.values():
+            sdl3.SDL_DestroyCursor(c)
 
         sdl3.SDL_DestroyRenderer(self.__renderer)
         sdl3.SDL_DestroyWindow(self.__frame)
         sdl3.SDL_Quit()
-        return 0
-    
+
     def __event_loop(self) -> None:
         while self.__running:
             event = sdl3.SDL_Event()
 
             while sdl3.SDL_PollEvent(event):
-                print(self.__resize_region)
+                # self.__resize_region = self.__detect_resize_region()
+                # print(self.__resize_region)
+
                 if event.type == sdl3.SDL_EVENT_QUIT:
                     self.__running = False
                 
@@ -76,6 +95,7 @@ class Frame(object):
                 if event.type == sdl3.SDL_EVENT_MOUSE_BUTTON_DOWN:
                     if event.button.button == sdl3.SDL_BUTTON_LEFT:
                         self.__resize_region = self.__detect_resize_region()
+                        self.__update_cursor(self.__resize_region)
                         if self.__resize_region != ResizeRegion.NONE:
                             self.__update_resize()
                         else:
@@ -153,7 +173,13 @@ class Frame(object):
 
         return ResizeRegion.NONE
     
-    def __start_resize(self):
+    def __update_cursor(self, resize_region: ResizeRegion) -> None:
+        if self.__resizing or self.__dragging:
+            return
+
+        sdl3.SDL_SetCursor(self.__cursor[resize_region])
+    
+    def __start_resize(self) -> None:
         if not self.__resizing:
             return
 
@@ -191,11 +217,11 @@ class Frame(object):
         sdl3.SDL_SetWindowPosition(self.__frame, int(x), int(y))
         sdl3.SDL_SetWindowSize(self.__frame, w, h)
     
-    def __stop_resize(self):
+    def __stop_resize(self) -> None:
         self.__resizing = False
         self.__resize_region = ResizeRegion.NONE
 
-    def __update_resize(self):
+    def __update_resize(self) -> None:
         self.__resizing = True
 
         self.__start_mx = c_float()
